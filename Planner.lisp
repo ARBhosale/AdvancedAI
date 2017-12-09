@@ -475,12 +475,13 @@ on them.  Returns a solved plan, else nil if not solved."
                 (setf operators-with-this-effect (all-operators effect-to-find))
                 (dolist (operator operators-with-this-effect)
                     (setf operator (copy-operator operator))
-                    (add-operator operator plan)
-                    (setf solved-plan (hook-up-operator (operator (car op-precond-pair) effect-to-find (copy-plan plan) current-depth max-depth t)))
-                    (if solved-plan
-                        (progn
-                            solved-plan
-                            (return)
+                    (let (modified-plan (add-operator operator plan))
+                        (setf solved-plan (hook-up-operator (operator (car op-precond-pair) effect-to-find modified-plan current-depth max-depth t)))
+                        (if solved-plan
+                            (progn
+                                solved-plan
+                                (return)
+                            )
                         )
                     )
                 )
@@ -501,6 +502,14 @@ after start and before goal.  Returns the modified copy of the plan."
   ;;; also hint: use PUSHNEW to add stuff but not duplicates
   ;;; Don't use PUSHNEW everywhere instead of PUSH, just where it
   ;;; makes specific sense.
+  (let (new-plan (copy-plan plan))
+    (pushnew operator (plan-operators new-plan))
+    (let (start (plan-start new-plan)) (goal (plan-goal new-plan))
+        (push (cons start operator) (plan-orderings new-plan))
+        (push (cons operator goal) (plan-orderings new-plan))
+    )
+    (new-plan)
+  )
 )
 
 (defun hook-up-operator (from to precondition plan
