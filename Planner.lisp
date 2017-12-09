@@ -298,20 +298,18 @@ precond is a predicate."
 or before the link, and it's got an effect which counters the link's effect."
 ;;; SPEED HINT.  Test the easy tests before the more costly ones.
 
-    ;;first checking if it is ordered before or ordered after the link
-    (let ((ordered-before nil) (ordered-after nil))
-    
-        (if (and (before-p operator (link-from link) plan) (before-p operator (link-to link) plan))
-            (setf ordered-before t)   
-        )
-        (if (and (before-p (link-from link) operator plan) (before-p (link-to link) operator) plan)
-            (setf ordered-after t)   
-        )
-        (if (not (or ordered-before ordered-after))
-            (progn
-                t
-                (return)
-            )
+    ;;if operator ordered before the link
+    (if (and (before-p operator (link-from link) plan) (before-p operator (link-to link) plan))
+        (progn
+            nil
+            (return)
+        )   
+    )
+    ;;if operator ordered after the link
+    (if (and (before-p (link-from link) operator plan) (before-p (link-to link) operator) plan)
+        (progn
+            nil
+            (return)
         )
     )
 
@@ -320,7 +318,7 @@ or before the link, and it's got an effect which counters the link's effect."
         (dolist (operator-effect (operator-effects operator))
             (if (equalp link-negative-effect operator-effect)
                 (progn
-                    (t)
+                    t
                     (return)
                 )
             )
@@ -572,6 +570,10 @@ situations you need to check are the ones described in the previous paragraph.
 This function should assume that if MAYBE-THREATENING-OPERATOR is NIL, then no
 operator was added and we don't have to check for its threats.  However, we must
 always check for any operators which threaten MAYBE-THREATENED-LINK."
+
+    (let ((threats '()))
+        ;; 1. checking if new link is threatened by operators in the plan
+    )
 )
 
 
