@@ -361,20 +361,33 @@ If there is no such pair, return nil"
 ;;; to pick a smart one.  Perhaps you might select the precondition
 ;;; which has the fewest possible operators which solve it, so it fails
 ;;; the fastest if it's wrong.
-    (let (precond-to-return)
-        (dolist (list-of-operators *sorted-list-of-list-of-operators*)
-            (dolist (operator-from-list list-of-operators)
-                (dolist (operator-precondition (operator-preconditions operator-from-list))
-                    (if (not (link-exists-for-precondition-p operator-precondition operator-from-list plan))
-                        (progn
-                            (cons operator-from-list operator-precondition)
-                            (return)
-                        )
+    ;; (let (precond-to-return)
+    ;;     (dolist (list-of-operators *sorted-list-of-list-of-operators*)
+    ;;         (dolist (operator-from-list list-of-operators)
+    ;;             (dolist (operator-precondition (operator-preconditions operator-from-list))
+    ;;                 (if (not (link-exists-for-precondition-p operator-precondition operator-from-list plan))
+    ;;                     (progn
+    ;;                         (cons operator-from-list operator-precondition)
+    ;;                         (return)
+    ;;                     )
                         
+    ;;                 )
+    ;;             )
+    ;;         )
+    ;;     )
+    ;; )
+    (dolist (link-in-plan (plan-links plan))
+        (let (to-operator-of-link (link-to link-in-plan) (precond-of-link (link-precond link-in-plan)))
+            (dolist (precond-of-operator (operator-preconditions to-operator-of-link))
+                (if (not (link-exists-for-precondition-p (precond-of-operator to-operator-of-link plan)))
+                    (progn
+                        (cons to-operator-of-link precond-of-operator)
+                        (return)
                     )
                 )
             )
         )
+        
     )
 )
 
