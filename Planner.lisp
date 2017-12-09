@@ -456,6 +456,39 @@ on those subgoals.  Returns a solved plan, else nil if not solved."
 hook-up-operator for all possible operators in the plan.  If that
 doesn't work, recursively call add operators and call hook-up-operators
 on them.  Returns a solved plan, else nil if not solved."
+    (let ((effect-to-find (cdr op-precond-pair)) (operators-with-this-effect) solved-plan)
+
+        ;picking up an operator already in plan
+        (setf operators-with-this-effect (all-effects effect-to-find plan))
+        (dolist (operator operators-with-this-effect)
+            (setf solved-plan (hook-up-operator (operator (car op-precond-pair) effect-to-find (copy-plan plan) current-depth max-depth nil)))
+            (if solved-plan
+                (progn
+                    solved-plan
+                    (return)
+                )
+            )
+        )
+        ;if there is no solved plan found, picking up an operator from all operators
+        (if (not solved-plan)
+            (progn
+                (setf operators-with-this-effect (all-operators effect-to-find))
+                (dolist (operator operators-with-this-effect)
+                    (setf operator (copy-operator operator))
+                    (add-operator operator plan)
+                    (setf solved-plan (hook-up-operator (operator (car op-precond-pair) effect-to-find (copy-plan plan) current-depth max-depth t)))
+                    (if solved-plan
+                        (progn
+                            solved-plan
+                            (return)
+                        )
+                    )
+                )
+            )
+        )
+
+        nil
+    )
 )
 
 (defun add-operator (operator plan)
