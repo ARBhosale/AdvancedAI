@@ -297,6 +297,38 @@ precond is a predicate."
   "T if operator threatens link in plan, because it's not ordered after
 or before the link, and it's got an effect which counters the link's effect."
 ;;; SPEED HINT.  Test the easy tests before the more costly ones.
+
+    ;;first checking if it is ordered before or ordered after the link
+    (let ((ordered-before nil) (ordered-after nil))
+    
+        (if (and (before-p operator (link-from link) plan) (before-p operator (link-to link) plan))
+            (setf ordered-before t)   
+        )
+        (if (and (before-p (link-from link) operator plan) (before-p (link-to link) operator) plan)
+            (setf ordered-after t)   
+        )
+        (if (not (or ordered-before ordered-after))
+            (progn
+                t
+                (return)
+            )
+        )
+    )
+
+    ;; testing if link's effect is countered
+    (let ((link-negative-effect (negate (link-precond link))))
+        (dolist (operator-effect (operator-effects operator))
+            (if (equalp link-negative-effect operator-effect)
+                (progn
+                    (t)
+                    (return)
+                )
+            )
+        )
+    )
+
+    ;; if all tests passed, operator does not threaten link
+    (nil)
 )
 
 (defun inconsistent-p (plan)
@@ -352,9 +384,9 @@ effects which can achieve this precondition."
   ;; hint: there's short, efficient way to do this, and a long,
   ;; grotesquely inefficient way.  Don't do the inefficient way.
   (let ((operators '()))
-    (dolist (link (plan-links plan))
-        (if (equalp (precondition (link-precond link)))
-            (setf operators (operators (list (link-to link))))
+    (dolist (link-in-plan (plan-links plan))
+        (if (equalp (precondition (link-precond link-in-plan)))
+            (setf operators (operators (list (link-to link-in-plan))))
         )
     )
     (operators)
@@ -366,6 +398,7 @@ effects which can achieve this precondition."
 an effect that can achieve this precondition."
   ;; hint: there's short, efficient way to do this, and a long,
   ;; grotesquely inefficient way.  Don't do the inefficient way.
+  (gethash precondition *operators-for-precond*)
 )
 
 (defun select-subgoal (plan current-depth max-depth)
