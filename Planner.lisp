@@ -474,14 +474,11 @@ on them.  Returns a solved plan, else nil if not solved."
             (progn
                 (setf operators-with-this-effect (all-operators effect-to-find))
                 (dolist (operator operators-with-this-effect)
-                    (setf operator (copy-operator operator))
-                    (let (modified-plan (add-operator operator plan))
-                        (setf solved-plan (hook-up-operator (operator (car op-precond-pair) effect-to-find modified-plan current-depth max-depth t)))
-                        (if solved-plan
-                            (progn
-                                solved-plan
-                                (return)
-                            )
+                    (setf solved-plan (hook-up-operator (operator (car op-precond-pair) effect-to-find plan current-depth max-depth t)))
+                    (if solved-plan
+                        (progn
+                            solved-plan
+                            (return)
                         )
                     )
                 )
@@ -526,6 +523,40 @@ plan, else nil if not solved."
   ;;; also hint: use PUSHNEW to add stuff but not duplicates  
   ;;; Don't use PUSHNEW everywhere instead of PUSH, just where it
   ;;; makes specific sense.
+
+  ;;checking if TO is already ordered before FROM
+  (if (reachable ((plan-orderings plan)) from to)
+    (progn
+        nil
+        (return)
+    )
+  )
+
+    (if new-operator-was-added
+        (progn
+            (setf from (copy-operator from))
+            (let ((modified-plan (add-operator from plan)) (new-link (make-link :from from :precond precondition :to to)))
+                (pushnew new-link (plan-links modified-plan))
+                (push (cons from to) (plan-orderings modified-plan))
+                ;; threats
+            )
+        )
+        (progn
+            (let ((new-link (make-link :from from :precond precondition :to to)))
+                (pushnew new-link (plan-links plan))
+                (push (cons from to) (plan-orderings plan))
+                ;; threats
+            )
+        )
+        
+    )
+
+    )
+
+  ;;
+  
+
+
 )
 
 (defun threats (plan maybe-threatening-operator maybe-threatened-link)
@@ -556,10 +587,16 @@ are copies of the original plan."
 
 (defun promote (operator link plan)
   "Promotes an operator relative to a link.  Doesn't copy the plan."
+  (let (from-operator-in-link (link-from link))
+    (push (cons operator from-operator-in-link) (plan-orderings plan))
+  )
 )
 
 (defun demote (operator link plan)
   "Demotes an operator relative to a link.  Doesn't copy the plan."
+  (let (to-operator-in-link (link-to link))
+    (push (cons to-operator-in-link operator) (plan-orderings plan))
+  )
 )
 
 (defun resolve-threats (plan threats current-depth max-depth)
