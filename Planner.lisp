@@ -414,6 +414,13 @@ an effect that can achieve this precondition."
   (gethash precondition *operators-for-precond*)
 )
 
+(defun was-precond-pair-tried (precond-pair-list precond-pair)
+    (if (member precond-pair precond-pair-list)
+        t
+        nil
+    )
+)
+
 (defun select-subgoal (plan current-depth max-depth)
   "For all possible subgoals, recursively calls choose-operator
 on those subgoals.  Returns a solved plan, else nil if not solved."
@@ -421,7 +428,26 @@ on those subgoals.  Returns a solved plan, else nil if not solved."
     ;;; to nondeterministically choose from among all preconditions --
     ;;; you just pick one arbitrarily and that's all.  Note that the
     ;;; algorithm says "pick a plan step...", rather than "CHOOSE a
-    ;;; plan step....".  This makes the algorithm much faster.  
+    ;;; plan step....".  This makes the algorithm much faster.
+
+    ;; checking if maximum depth reached
+    (if (equalp current-depth max-depth)
+        (progn
+            nil
+            (return)
+        )
+    )
+    (incf current-depth)
+    (let (sub-goal (pick-precond plan))
+        ;; checking if sub-goal exists
+        if (not (sub-goal)
+            (progn
+                nil
+                (return)
+            )
+        )
+        (choose-operator sub-goal plan current-depth max-depth)
+    )
 )
 
 
