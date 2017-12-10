@@ -597,6 +597,16 @@ always check for any operators which threaten MAYBE-THREATENED-LINK."
     )
 )
 
+(defun generate-promoted-demoted-plans (promote-demote-function threat plans new-plan)
+    (funcall promote-demote-function (car threat) (cdr threat) new-plan)
+    (check-and-add-plan plans new-plan)
+)
+
+(defun check-and-add-plan (plans plan)
+    (if (not (inconsistent-p plan))
+        (push plan plans)
+    )
+)
 
 (defun all-promotion-demotion-plans (plan threats)
   "Returns plans for each combination of promotions and demotions
@@ -606,6 +616,33 @@ are copies of the original plan."
   ;;; Also check out MAPC
   ;;; SPEED HINT.  You might handle the one-threat case specially.
   ;;; In that case you could also check for inconsistency right then and there too.
+  (if (equalp 1 (list-length threats))
+    (progn
+        (let ((threat (car threats)) (consistent-plans '()))
+            (let (new-plan (copy-plan plan))
+            (generate-promoted-demoted-plans #'promote threat consistent-plans new-plan)
+            (generate-promoted-demoted-plans #'demote threat consistent-plans new-plan)
+            (consistent-plans)
+            (return)
+        )
+    )
+  )
+
+  (let* ((number-of-threats (list-length threats)) (combinations (binary-combinations number-of-threats)) (consistent-plans '()))
+
+    (dolist (combination combinations)
+        (let (new-plan (copy-plan plan))
+            (mapc #'(lambda (threat is-promote) 
+                (if (is-promote)
+                    (generate-promoted-demoted-plans #'promote threat consistent-plans new-plan)
+                    (generate-promoted-demoted-plans #'demote threat consistent-plans new-plan)
+                )
+            ) threats combination)
+        )
+    )
+    (consistent-plans)  
+    )
+  )
 )
 
 (defun promote (operator link plan)
