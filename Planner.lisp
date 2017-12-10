@@ -523,7 +523,7 @@ plan, else nil if not solved."
   ;;; makes specific sense.
 
   ;;checking if TO is already ordered before FROM
-  (if (reachable ((plan-orderings plan)) from to)
+  (if (reachable (plan-orderings plan) from to)
     (progn
         nil
         (return)
@@ -536,14 +536,17 @@ plan, else nil if not solved."
             (let ((modified-plan (add-operator from plan)) (new-link (make-link :from from :precond precondition :to to)))
                 (pushnew new-link (plan-links modified-plan))
                 (push (cons from to) (plan-orderings modified-plan))
-                ;; threats
+                (let (threats (threats modified-plan from new-link))
+                    (resolve-threats modified-plan threats current-depth max-depth)
+                )
             )
         )
         (progn
             (let ((new-link (make-link :from from :precond precondition :to to)))
                 (pushnew new-link (plan-links plan))
                 (push (cons from to) (plan-orderings plan))
-                ;; threats
+                (let (threats (threats plan nil new-link))
+                    (resolve-threats plan threats current-depth max-depth)
             )
         )
         
@@ -573,6 +576,24 @@ always check for any operators which threaten MAYBE-THREATENED-LINK."
 
     (let ((threats '()))
         ;; 1. checking if new link is threatened by operators in the plan
+        (dolist (operator-in-plan (plan-operators plan))
+            (if (operator-threatens-link-p operator-in-plan maybe-threatened-link plan)
+                (push (cons operator-in-plan maybe-threatened-link) threats)
+            )
+        )
+
+        ;; 2. checking if new operator threatens links in plan
+        (if (maybe-threatening-operator)
+            (progn
+                (dolist (link-in-plan (plan-links plan))
+                    (if (operator-threatens-link-p maybe-threatening-operator link-in-plan plan)
+                        (push (cons maybe-threatening-operator link-in-plan) threats)
+                    )
+                )
+            )
+        )
+
+        (threats)
     )
 )
 
