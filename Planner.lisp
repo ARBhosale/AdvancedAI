@@ -442,7 +442,7 @@ on those subgoals.  Returns a solved plan, else nil if not solved."
                     (return-from select-subgoal nil)
                 )
                 (progn
-                    (format t "~% Depth reached. Returning consistent plan: ~a~%" plan)
+                    (format t "~% Depth reached. Returning nil although we had a consistent plan: ~a~%" plan)
                     (return-from select-subgoal nil)
                 )
             )
@@ -470,44 +470,43 @@ on those subgoals.  Returns a solved plan, else nil if not solved."
 hook-up-operator for all possible operators in the plan.  If that
 doesn't work, recursively call add operators and call hook-up-operators
 on them.  Returns a solved plan, else nil if not solved."
-    (let ((effect-to-find (cdr op-precond-pair)) operators-with-this-effect solved-plan)
+    (let ((effect-to-find (cdr op-precond-pair)) operators-with-this-effect)
         (format t "~% Finding operators with effect:~a~%" effect-to-find)
 
         ;checking for an operator already in plan
         
         (setf operators-with-this-effect (all-effects effect-to-find plan))
         (dolist (operator operators-with-this-effect)
-            (format t "~%Checking for an operator already in plan~%")
-            (setf solved-plan (hook-up-operator operator (car op-precond-pair) effect-to-find (copy-plan plan) current-depth max-depth nil))
-            (if solved-plan
-                (progn
-                    (format t "~%Solved plan found using operator in plan. Plan:~a~%" solved-plan)
-                    (return-from choose-operator solved-plan)
+            (let (temp-for-plan)
+                (format t "~%Checking for an operator already in plan~%")
+                (setf temp-for-plan (hook-up-operator operator (car op-precond-pair) effect-to-find (copy-plan plan) current-depth max-depth nil))
+                (if temp-for-plan
+                    (progn
+                        (format t "~%Solved plan found using operator in plan. Plan:~a~%" temp-for-plan)
+                        (return-from choose-operator temp-for-plan)
+                    )
                 )
             )
         )
 
         ;if there is no solved plan found, checking for an operator from all operators
         
-        (if (not solved-plan)
-            (progn
-                (format t "~%Checking for an operator from all operators~%")
-                (setf operators-with-this-effect (all-operators effect-to-find))
-                (format t "~%All operators having effect~a~%~%Operators:~a" effect-to-find operators-with-this-effect)
-                (dolist (operator operators-with-this-effect)
-                
-                    (setf operator (copy-operator operator))
-                    (setf solved-plan (add-operator operator plan))
-                    (setf solved-plan (hook-up-operator operator (car op-precond-pair) effect-to-find solved-plan current-depth max-depth t))
-                    (if solved-plan
+            (format t "~%Checking for an operator from all operators~%")
+            (setf operators-with-this-effect (all-operators effect-to-find))
+            (format t "~%All operators having effect~a~%~%Operators:~a~%" effect-to-find operators-with-this-effect)
+            (dolist (operator operators-with-this-effect)
+                (let (temp-for-plan temp-operator)
+                    (setf temp-operator (copy-operator operator))
+                    (setf temp-for-plan (add-operator temp-operator plan))
+                    (setf temp-for-plan (hook-up-operator temp-operator (car op-precond-pair) effect-to-find temp-for-plan current-depth max-depth t))
+                    (if temp-for-plan
                         (progn
-                            (format t "~%Solved plan found using all operators. Plan:~a~%" solved-plan)
-                            (return-from choose-operator solved-plan)
+                            (format t "~%Solved plan found using all operators. Plan:~a~%" temp-for-plan)
+                            (return-from choose-operator temp-for-plan)
                         )
                     )
                 )
             )
-        )
 
         nil
     )
@@ -563,13 +562,13 @@ plan, else nil if not solved."
             (format t "~%Hooking up a new operator:~a~%" from)
             (let ((new-link (make-link :from from :precond precondition :to to)))
                 (push new-link (plan-links plan))
-                (pushnew (cons from to) (plan-orderings plan))
+                (if (not (are-same-operators to (plan-goal plan)))
+                    (pushnew (cons from to) (plan-orderings plan))
+                )
                 (let ((threats-found (threats plan from new-link)))
                     (resolve-threats plan threats-found current-depth max-depth)
                 )
-            )
-                
-            
+            )    
         )
         (progn
             (format t "~%Hooking up an exisitng plan operator:~a~%" from)
@@ -610,7 +609,7 @@ always check for any operators which threaten MAYBE-THREATENED-LINK."
         ;; 1. checking if new link is threatened by operators in the plan
         (dolist (operator-in-plan (plan-operators plan))
             (if (operator-threatens-link-p operator-in-plan maybe-threatened-link plan)
-                (push (cons operator-in-plan maybe-threatened-link) threats-found)
+                (pushnew (cons operator-in-plan maybe-threatened-link) threats-found)
             )
         )
 
@@ -619,12 +618,12 @@ always check for any operators which threaten MAYBE-THREATENED-LINK."
             (progn
                 (dolist (link-in-plan (plan-links plan))
                     (if (operator-threatens-link-p maybe-threatening-operator link-in-plan plan)
-                        (push (cons maybe-threatening-operator link-in-plan) threats-found)
+                        (pushnew (cons maybe-threatening-operator link-in-plan) threats-found)
                     )
                 )
             )
         )
-        (format t "~%Threats in plan:~a~%" threats-found)
+        (format t "~%Threats in plan:~a~%" (list-length threats-found))
         threats-found
     )
 )
@@ -642,7 +641,7 @@ always check for any operators which threaten MAYBE-THREATENED-LINK."
     ;; (format t "are plans adding? :~a~%" plan)
     (if (not (inconsistent-p plan))
         (progn
-            (format t "~%Plan is consistent~%Plan:~a~%Plans:~a~%" plan plans)
+            (format t "~%Plan is consistent.~%")
             (push plan plans)
             ;; (format t "~%Adding ~%Plan:~a to Plans:~a~%" plan plans)
         )
@@ -681,9 +680,9 @@ are copies of the original plan."
 ;;   )
 (format t "~%all-promotion-demotion-plans threats:~a~%" threats-found)
   (let* ((number-of-threats (list-length threats-found)) (combinations (binary-combinations number-of-threats)) (consistent-plans '()))
-    (format t "are plans adding2? :~a~%" consistent-plans)
+    ;; (format t "are plans adding2? :~a~%" consistent-plans)
     (dolist (combination combinations)
-        (format t "Combination:~% Promote:~a~% Demote:~a~%" (car combination) (cdr combination))
+        (format t "Combination for threats:~% ~a~%" combination)
         (let ((new-plan (copy-plan plan)))
             (mapc #'(lambda (threat is-promote) 
                 (format t "~%Inside comb lambda. ~%Threat: ~a ~% isPromote:~a~%" threat is-promote)
@@ -796,7 +795,7 @@ solved plan.  Returns the solved plan, else nil if no solved plan."
     (loop
      (format t "~%Search Depth: ~d" depth)
      (setf solution (select-subgoal plan 0 depth))
-     (when solution (return)) ;; break from loop, we're done!
+     (when (equalp depth 2) (return)) ;; break from loop, we're done!
      (incf depth *depth-increment*))
     ;; found the answer if we got here
     (format t "~%Solution Discovered:~%~%")
