@@ -399,9 +399,18 @@ effects which can achieve this precondition."
   ;; hint: there's short, efficient way to do this, and a long,
   ;; grotesquely inefficient way.  Don't do the inefficient way.
   (let ((operators '()))
-    (dolist (link-in-plan (plan-links plan))
-        (if (equalp precondition (link-precond link-in-plan))
-            (push (link-to link-in-plan) operators)
+    ;; (dolist (link-in-plan (plan-links plan))
+    ;;     (if (equalp precondition (link-precond link-in-plan))
+    ;;         (push (link-to link-in-plan) operators)
+    ;;     )
+    ;; )
+    (dolist (operator (plan-operators plan))
+        (if (operator-effects operator)
+            (dolist (operator-effect (operator-effects operator))
+                (if (equalp precondition operator-effect)
+                    (push operator operators)
+                )
+            )
         )
     )
     operators
@@ -438,11 +447,11 @@ on those subgoals.  Returns a solved plan, else nil if not solved."
         (progn
             (if (not (inconsistent-p plan))
                 (progn
-                    (format t "~% Depth reached. Returning nil. ~%")
+                    (format t "~% Depth reached. Returning nil although we had a consistent plan: ~a~%" plan)
                     (return-from select-subgoal nil)
                 )
                 (progn
-                    (format t "~% Depth reached. Returning nil although we had a consistent plan: ~a~%" plan)
+                    (format t "~% Depth reached. Returning nil ")
                     (return-from select-subgoal nil)
                 )
             )
@@ -485,6 +494,11 @@ on them.  Returns a solved plan, else nil if not solved."
                         (format t "~%Solved plan found using operator in plan. Plan:~a~%" temp-for-plan)
                         (return-from choose-operator temp-for-plan)
                     )
+                    ;; (progn
+                    ;;     (if (> current-depth max-depth)
+                    ;;         (return-from choose-operator nil)
+                    ;;     )
+                    ;; )
                 )
             )
         )
@@ -498,12 +512,17 @@ on them.  Returns a solved plan, else nil if not solved."
                 (let (temp-for-plan temp-operator)
                     (setf temp-operator (copy-operator operator))
                     (setf temp-for-plan (add-operator temp-operator plan))
-                    (setf temp-for-plan (hook-up-operator temp-operator (car op-precond-pair) effect-to-find (copy-plan temp-for-plan) current-depth max-depth t))
+                    (setf temp-for-plan (hook-up-operator temp-operator (car op-precond-pair) effect-to-find temp-for-plan current-depth max-depth t))
                     (if temp-for-plan
                         (progn
                             (format t "~%Solved plan found using all operators. Plan:~a~%" temp-for-plan)
                             (return-from choose-operator temp-for-plan)
                         )
+                        ;; (progn
+                        ;;     (if (> current-depth max-depth)
+                        ;;         (return-from choose-operator nil)
+                        ;;     )
+                        ;; )
                     )
                 )
             )
@@ -823,7 +842,7 @@ solved plan.  Returns the solved plan, else nil if no solved plan."
     (loop
      (format t "~%Search Depth: ~d" depth)
      (setf solution (select-subgoal plan 0 depth))
-     (when solution (return)) ;; break from loop, we're done!
+     (when (equalp 10 depth) (return)) ;; break from loop, we're done!
      (incf depth *depth-increment*))
     ;; found the answer if we got here
     (format t "~%Solution Discovered:~%~%")
