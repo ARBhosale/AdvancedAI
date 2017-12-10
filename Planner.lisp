@@ -498,7 +498,7 @@ on them.  Returns a solved plan, else nil if not solved."
                 (let (temp-for-plan temp-operator)
                     (setf temp-operator (copy-operator operator))
                     (setf temp-for-plan (add-operator temp-operator plan))
-                    (setf temp-for-plan (hook-up-operator temp-operator (car op-precond-pair) effect-to-find temp-for-plan current-depth max-depth t))
+                    (setf temp-for-plan (hook-up-operator temp-operator (car op-precond-pair) effect-to-find (copy-plan temp-for-plan) current-depth max-depth t))
                     (if temp-for-plan
                         (progn
                             (format t "~%Solved plan found using all operators. Plan:~a~%" temp-for-plan)
@@ -637,6 +637,13 @@ always check for any operators which threaten MAYBE-THREATENED-LINK."
     plans
 )
 
+(defun generate-promoted-demoted-plan (promote-demote-function threat original-plan)
+    (let (modified-plan)
+        (setf modified-plan (funcall promote-demote-function (car threat) (cdr threat) original-plan))
+        modified-plan
+    )
+)
+
 (defun check-and-add-plan (plans plan)
     ;; (format t "are plans adding? :~a~%" plan)
     (if (not (inconsistent-p plan))
@@ -682,15 +689,17 @@ are copies of the original plan."
   (let* ((number-of-threats (list-length threats-found)) (combinations (binary-combinations number-of-threats)) (consistent-plans '()))
     ;; (format t "are plans adding2? :~a~%" consistent-plans)
     (dolist (combination combinations)
-        (format t "Combination for threats:~% ~a~%" combination)
-        (let ((new-plan (copy-plan plan)))
+        (format t "Combination for threat/s:~% ~a~%" combination)
+        (let ((updated-plan (copy-plan plan)))
             (mapc #'(lambda (threat is-promote) 
-                (format t "~%Inside comb lambda. ~%Threat: ~a ~% isPromote:~a~%" threat is-promote)
+                (format t "~%Inside combination lambda. ~%Threat: ~a ~% isPromote:~a~%" threat is-promote)
+                
                 (if is-promote
-                    (setf consistent-plans (generate-promoted-demoted-plans #'promote threat consistent-plans new-plan))
-                    (setf consistent-plans (generate-promoted-demoted-plans #'demote threat consistent-plans new-plan))
+                    (setf updated-plan (generate-promoted-demoted-plan #'promote threat updated-plan))
+                    (setf updated-plan (generate-promoted-demoted-plan #'demote threat updated-plan))
                 )
             ) threats-found combination)
+            (setf consistent-plans (check-and-add-plan consistent-plans updated-plan))
         )
     )
     consistent-plans  
@@ -700,16 +709,35 @@ are copies of the original plan."
 
 (defun promote (operator link plan)
   "Promotes an operator relative to a link.  Doesn't copy the plan."
+  (format t "~%Promoting plan:~%~a" plan)
+  
   (let ((from-operator-in-link (link-from link)))
-    (pushnew (cons operator from-operator-in-link) (plan-orderings plan))
+    (if (reachable (plan-orderings plan) operator from-operator-in-link)
+        (format t "~%Ordering already present. So not adding again.:~%")
+        (push (cons operator from-operator-in-link) (plan-orderings plan))
+    )
+    (format t "~%Promoted plan:~%~a" plan)
+    plan
   )
 )
 
 (defun demote (operator link plan)
   "Demotes an operator relative to a link.  Doesn't copy the plan."
+  (format t "~%Demoting plan~%")
+;;   (let ((to-operator-in-link (link-to link)))
+;;     (pushnew (cons to-operator-in-link operator) (plan-orderings plan))
+;;     plan
+;;   )
+
   (let ((to-operator-in-link (link-to link)))
-    (pushnew (cons to-operator-in-link operator) (plan-orderings plan))
+    (if (reachable (plan-orderings plan) to-operator-in-link operator)
+        (format t "~%Ordering already present. So not adding again.:~%")
+        (push (cons to-operator-in-link operator) (plan-orderings plan))
+    )
+    (format t "~%Demoted plan:~%~a" plan)
+    plan
   )
+
 )
 
 (defun resolve-threats (plan threats-found current-depth max-depth)
@@ -795,7 +823,7 @@ solved plan.  Returns the solved plan, else nil if no solved plan."
     (loop
      (format t "~%Search Depth: ~d" depth)
      (setf solution (select-subgoal plan 0 depth))
-     (when (equalp depth 2) (return)) ;; break from loop, we're done!
+     (when solution (return)) ;; break from loop, we're done!
      (incf depth *depth-increment*))
     ;; found the answer if we got here
     (format t "~%Solution Discovered:~%~%")
