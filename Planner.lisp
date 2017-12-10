@@ -256,7 +256,7 @@ plus a pointer to the start operator and to the goal operator."
 (defun before-p (operator1 operator2 plan)
   "Operator1 is ordered before operator2 in plan?"
 ;;; perhaps you have an existing function which could help here.
- (let (orderings (plan-orderings p))
+ (let ((orderings (plan-orderings plan)))
     (if (assoc operator1 orderings)
         t
         nil
@@ -270,7 +270,7 @@ plus a pointer to the start operator and to the goal operator."
             ;; (and ((equal precond-in-link precond) (equal to-operator-in-link to-operator)))
             (if (equalp precond-in-link precond))
                 (progn 
-                    (if (equal to-operator-in-link to-operator))
+                    (if (equalp to-operator-in-link to-operator))
                     t
                 )
         )
@@ -280,12 +280,14 @@ plus a pointer to the start operator and to the goal operator."
 (defun link-exists-for-precondition-p (precond operator plan)
   "T if there's a link for the precond for a given operator, else nil.
 precond is a predicate."
-    (let (links-in-plan (plan-links plan))
-        (dolist (link-element links-in-plan)
-            (if (link-has-precond-and-to-operator precond operator link-element)
-                (progn
-                    t
-                    (return)
+    (catch 'freturn1
+        (let ((links-in-plan (plan-links plan)))
+            (dolist (link-element links-in-plan)
+                (if (link-has-precond-and-to-operator precond operator link-element)
+                    (progn
+                        ;; t
+                        (throw 'freturn1 t)
+                    )
                 )
             )
         )
@@ -297,19 +299,19 @@ precond is a predicate."
   "T if operator threatens link in plan, because it's not ordered after
 or before the link, and it's got an effect which counters the link's effect."
 ;;; SPEED HINT.  Test the easy tests before the more costly ones.
-
+(catch 'freturn2
     ;;if operator ordered before the link
     (if (and (before-p operator (link-from link) plan) (before-p operator (link-to link) plan))
         (progn
-            nil
-            (return)
+            ;; nil
+            (throw 'freturn2 nil)
         )   
     )
     ;;if operator ordered after the link
     (if (and (before-p (link-from link) operator plan) (before-p (link-to link) operator) plan)
         (progn
-            nil
-            (return)
+            ;; nil
+            (throw 'freturn2 nil)
         )
     )
 
@@ -318,75 +320,44 @@ or before the link, and it's got an effect which counters the link's effect."
         (dolist (operator-effect (operator-effects operator))
             (if (equalp link-negative-effect operator-effect)
                 (progn
-                    t
-                    (return)
+                    ;; t
+                    (throw 'freturn2 t)
                 )
             )
         )
     )
 
     ;; if all tests passed, operator does not threaten link
-    (nil)
+    nil
+)
 )
 
 (defun inconsistent-p (plan)
   "Plan orderings are inconsistent"
   ;; hint: cyclic-assoc-list
-  (let (orderings (plan-orderings p))
+  (let ((orderings (plan-orderings p)))
     (cyclic-assoc-list orderings)
  )
-)
-
-(defun list-length-comparison-function (list1 list2)
-    (< (list-length list1) (list-length list2))
-)
-
-(defun sort-precond-operators(hash-table)
-"Returns a list of list of operators with increasing order of the number of operators"
-;; ((op1) (op2 op3) (op4 op5 op6))
-    (let ((un-sorted-list '()) sorted-list)
-    ;;getting a un-sorted list of list of operators
-        (maphash #'(lambda (precond operators) (setf un-sorted-list (append un-sorted-list operators))) hash-table)
-        (setf sorted-list (copy-list un-sorted-list))
-        (setf sorted-list (stable-sort sorted-list #'list-length-comparison-function))
-    )
 )
 
 (defun pick-precond (plan)
   "Return ONE (operator . precondition) pair in the plan that has not been met yet.
 If there is no such pair, return nil"
-;;; SPEED HINT.  Any precondition will work.  But this is an opportunity
-;;; to pick a smart one.  Perhaps you might select the precondition
-;;; which has the fewest possible operators which solve it, so it fails
-;;; the fastest if it's wrong.
-    ;; (let (precond-to-return)
-    ;;     (dolist (list-of-operators *sorted-list-of-list-of-operators*)
-    ;;         (dolist (operator-from-list list-of-operators)
-    ;;             (dolist (operator-precondition (operator-preconditions operator-from-list))
-    ;;                 (if (not (link-exists-for-precondition-p operator-precondition operator-from-list plan))
-    ;;                     (progn
-    ;;                         (cons operator-from-list operator-precondition)
-    ;;                         (return)
-    ;;                     )
-                        
-    ;;                 )
-    ;;             )
-    ;;         )
-    ;;     )
-    ;; )
+(catch 'freturn3
     (dolist (link-in-plan (plan-links plan))
-        (let (to-operator-of-link (link-to link-in-plan) (precond-of-link (link-precond link-in-plan)))
+        (let ((to-operator-of-link (link-to link-in-plan)) (precond-of-link (link-precond link-in-plan)))
             (dolist (precond-of-operator (operator-preconditions to-operator-of-link))
                 (if (not (link-exists-for-precondition-p (precond-of-operator to-operator-of-link plan)))
                     (progn
-                        (cons to-operator-of-link precond-of-operator)
-                        (return)
+                        ;; (cons to-operator-of-link precond-of-operator)
+                        (throw 'freturn3 (cons to-operator-of-link precond-of-operator))
                     )
                 )
             )
         )
         
     )
+)
 )
 
 (defun all-effects (precondition plan)
@@ -429,22 +400,24 @@ on those subgoals.  Returns a solved plan, else nil if not solved."
     ;;; plan step....".  This makes the algorithm much faster.
 
     ;; checking if maximum depth reached
+    (catch 'freturn4
     (if (equalp current-depth max-depth)
         (progn
-            nil
-            (return)
+            ;; nil
+            (throw 'freturn4 nil)
         )
     )
     (incf current-depth)
-    (let (sub-goal (pick-precond plan))
+    (let ((sub-goal (pick-precond plan)))
         ;; checking if sub-goal exists
-        if (not (sub-goal)
+        (if (not sub-goal)
             (progn
-                nil
-                (return)
+                ;; nil
+                (throw 'freturn4 nil)
             )
         )
         (choose-operator sub-goal plan current-depth max-depth)
+    )
     )
 )
 
@@ -454,29 +427,30 @@ on those subgoals.  Returns a solved plan, else nil if not solved."
 hook-up-operator for all possible operators in the plan.  If that
 doesn't work, recursively call add operators and call hook-up-operators
 on them.  Returns a solved plan, else nil if not solved."
+(catch 'freturn5
     (let ((effect-to-find (cdr op-precond-pair)) (operators-with-this-effect) solved-plan)
 
         ;picking up an operator already in plan
         (setf operators-with-this-effect (all-effects effect-to-find plan))
         (dolist (operator operators-with-this-effect)
             (setf solved-plan (hook-up-operator (operator (car op-precond-pair) effect-to-find (copy-plan plan) current-depth max-depth nil)))
-            (if solved-plan
+            (if (solved-plan)
                 (progn
-                    solved-plan
-                    (return)
+                    ;; solved-plan
+                    (throw 'freturn5 solved-plan)
                 )
             )
         )
         ;if there is no solved plan found, picking up an operator from all operators
-        (if (not solved-plan)
+        (if (not (solved-plan))
             (progn
                 (setf operators-with-this-effect (all-operators effect-to-find))
                 (dolist (operator operators-with-this-effect)
                     (setf solved-plan (hook-up-operator (operator (car op-precond-pair) effect-to-find plan current-depth max-depth t)))
-                    (if solved-plan
+                    (if (solved-plan)
                         (progn
-                            solved-plan
-                            (return)
+                            ;; solved-plan
+                            (throw 'freturn5 solved-plan)
                         )
                     )
                 )
@@ -485,6 +459,7 @@ on them.  Returns a solved plan, else nil if not solved."
 
         nil
     )
+)
 )
 
 (defun add-operator (operator plan)
@@ -497,9 +472,9 @@ after start and before goal.  Returns the modified copy of the plan."
   ;;; also hint: use PUSHNEW to add stuff but not duplicates
   ;;; Don't use PUSHNEW everywhere instead of PUSH, just where it
   ;;; makes specific sense.
-  (let (new-plan (copy-plan plan))
+  (let ((new-plan (copy-plan plan)))
     (pushnew operator (plan-operators new-plan))
-    (let (start (plan-start new-plan)) (goal (plan-goal new-plan))
+    (let ((start (plan-start new-plan)) (goal (plan-goal new-plan)))
         (push (cons start operator) (plan-orderings new-plan))
         (push (cons operator goal) (plan-orderings new-plan))
     )
@@ -521,12 +496,12 @@ plan, else nil if not solved."
   ;;; also hint: use PUSHNEW to add stuff but not duplicates  
   ;;; Don't use PUSHNEW everywhere instead of PUSH, just where it
   ;;; makes specific sense.
-
+    (catch 'freturn6
   ;;checking if TO is already ordered before FROM
   (if (reachable (plan-orderings plan) from to)
     (progn
-        nil
-        (return)
+        ;; nil
+        (throw 'freturn6 nil)
     )
   )
 
@@ -536,7 +511,7 @@ plan, else nil if not solved."
             (let ((modified-plan (add-operator from plan)) (new-link (make-link :from from :precond precondition :to to)))
                 (pushnew new-link (plan-links modified-plan))
                 (push (cons from to) (plan-orderings modified-plan))
-                (let (threats (threats modified-plan from new-link))
+                (let ((threats (threats modified-plan from new-link)))
                     (resolve-threats modified-plan threats current-depth max-depth)
                 )
             )
@@ -545,7 +520,7 @@ plan, else nil if not solved."
             (let ((new-link (make-link :from from :precond precondition :to to)))
                 (pushnew new-link (plan-links plan))
                 (push (cons from to) (plan-orderings plan))
-                (let (threats (threats plan nil new-link))
+                (let ((threats (threats plan nil new-link)))
                     (resolve-threats plan threats current-depth max-depth)
             )
         )
@@ -556,7 +531,7 @@ plan, else nil if not solved."
 
   ;;
   
-
+    )
 
 )
 
@@ -616,14 +591,15 @@ are copies of the original plan."
   ;;; Also check out MAPC
   ;;; SPEED HINT.  You might handle the one-threat case specially.
   ;;; In that case you could also check for inconsistency right then and there too.
+  (catch 'freturn7
   (if (equalp 1 (list-length threats))
     (progn
         (let ((threat (car threats)) (consistent-plans '()))
-            (let (new-plan (copy-plan plan))
+            (let ((new-plan (copy-plan plan)))
             (generate-promoted-demoted-plans #'promote threat consistent-plans new-plan)
             (generate-promoted-demoted-plans #'demote threat consistent-plans new-plan)
-            (consistent-plans)
-            (return)
+            ;; (consistent-plans)
+            (throw 'freturn7 consistent-plans)
         )
     )
   )
@@ -631,7 +607,7 @@ are copies of the original plan."
   (let* ((number-of-threats (list-length threats)) (combinations (binary-combinations number-of-threats)) (consistent-plans '()))
 
     (dolist (combination combinations)
-        (let (new-plan (copy-plan plan))
+        (let ((new-plan (copy-plan plan)))
             (mapc #'(lambda (threat is-promote) 
                 (if (is-promote)
                     (generate-promoted-demoted-plans #'promote threat consistent-plans new-plan)
@@ -643,18 +619,19 @@ are copies of the original plan."
     (consistent-plans)  
     )
   )
+  )
 )
 
 (defun promote (operator link plan)
   "Promotes an operator relative to a link.  Doesn't copy the plan."
-  (let (from-operator-in-link (link-from link))
+  (let ((from-operator-in-link (link-from link)))
     (push (cons operator from-operator-in-link) (plan-orderings plan))
   )
 )
 
 (defun demote (operator link plan)
   "Demotes an operator relative to a link.  Doesn't copy the plan."
-  (let (to-operator-in-link (link-to link))
+  (let ((to-operator-in-link (link-to link)))
     (push (cons to-operator-in-link operator) (plan-orderings plan))
   )
 )
@@ -663,6 +640,19 @@ are copies of the original plan."
   "Tries all combinations of solutions to all the threats in the plan,
 then recursively calls SELECT-SUBGOAL on them until one returns a
 solved plan.  Returns the solved plan, else nil if no solved plan."
+(catch 'freturn8
+    (let ((consistent-plans (all-promotion-demotion-plans plan threats)) (solved-plan nil))
+        (dolist (consistent-plan consistent-plans)
+            (setf solved-plan (select-subgoal consistent-plan current-depth max-depth))
+            (if (solved-plan)
+                (progn
+                    ;; solved-plan
+                    (throw 'freturn8 solved-plan)
+                )
+            )
+        )
+    )
+)
 )
 
 
@@ -719,7 +709,6 @@ solved plan.  Returns the solved plan, else nil if no solved plan."
 	    (depth *depth-increment*)
 	     solution)
     (build-operators-for-precond)
-    (setf *sorted-list-of-list-of-operators* (sort-precond-operators *operators-for-precond*))
     ;; Do iterative deepening search on this sucker
     (loop
      (format t "~%Search Depth: ~d" depth)
