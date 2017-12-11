@@ -263,51 +263,28 @@ plus a pointer to the start operator and to the goal operator."
 (defun before-p (operator1 operator2 plan)
   "Operator1 is ordered before operator2 in plan?"
 ;;; perhaps you have an existing function which could help here.
- (let* ((orderings (plan-orderings plan)) (following-operator (cdr (assoc operator1 orderings))) (is-before nil))
-    (if following-operator
-        (progn
-            (if (are-same-operators operator2 following-operator)
-                (setf is-before t)
-                (setf is-before nil)
-            )
-        )
-    )
-    is-before
-    )
-    
+ (reachable (plan-orderings plan) (operator-name operator1) (operator-name operator2))     
  )
 
 
-(defun link-has-precond-and-to-operator (precond to-operator link-to-check)
-    (let ((precond-in-link (link-precond link-to-check)) (to-operator-in-link (link-to link-to-check)))
-            ;; (and ((equal precond-in-link precond) (equal to-operator-in-link to-operator)))
-            (if (equalp precond-in-link precond)
-                (progn 
-                    (if (are-same-operators to-operator-in-link to-operator)
-                        (return-from link-has-precond-and-to-operator t)
-                    )
-                )
-            )
-    )
-    nil
-)
 
 (defun link-exists-for-precondition-p (precond operator plan)
   "T if there's a link for the precond for a given operator, else nil.
 precond is a predicate."
-;; (format t "~%link exists~%")
-    (let ((links-in-plan (plan-links plan)))
-        (dolist (link-element links-in-plan)
-            (if (link-has-precond-and-to-operator precond operator link-element)
-                (progn
-                    ;; t
-                    (return-from link-exists-for-precondition-p t)
-                )
-            )
-        )
-    )
-    nil
-)
+  
+  (loop for mylink in (plan-links plan)
+	do
+	(if (equalp (operator-uniq operator) (operator-uniq (link-to mylink)))
+	    ;; we found the link that goes to the operator
+	    ;; Now, we check if the preconditions match
+	    ;; The link selected is from an temp_operator to the operator
+	    (if (equalp precond (link-precond mylink))
+		(return-from link-exists-for-precondition-p t)
+	      )	
+	    )
+	)
+  nil 
+  )
 
 
 (defun operator-threatens-link-p (operator link plan)
@@ -744,6 +721,7 @@ are copies of the original plan."
 	(from-operator-in-link (link-from link)))
     (format t "~%Now Pushing from promote :~a"  (cons operator from-operator-in-link))
     (pushnew (cons operator from-operator-in-link) (plan-orderings plan))
+    (pushnew (cons operator to-operator-in-link) (plan-orderings plan))
     (format t "~%Promoted plan:~%~a" plan)
     plan
   )
@@ -763,7 +741,7 @@ are copies of the original plan."
     (format t "~%Now Pushing from demote :~a" (cons from-operator-in-link operator))
     (format t "~%Now Pushing from demote :~a" (cons operator to-operator-in-link))
     (pushnew (cons from-operator-in-link operator) (plan-orderings plan))
-    (pushnew (cons operator to-operator-in-link) (plan-orderings plan))
+    (pushnew (cons to-operator-in-link operator) (plan-orderings plan))
     (format t "~%Demoted plan:~%~a" plan)
     plan
   )
