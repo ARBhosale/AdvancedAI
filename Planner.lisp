@@ -473,7 +473,7 @@ on them.  Returns a solved plan, else nil if not solved."
         )
 
         ;if there is no solved plan found, checking for an operator from all operators
-        (if (not (> current-depth max-depth))
+        
             (progn
                 (format t "~%Current depth:~a:~% Max-depth:~a~%" current-depth max-depth)
                 (format t "~%Checking for an operator from all operators~%")
@@ -498,7 +498,7 @@ on them.  Returns a solved plan, else nil if not solved."
                     )
                 )
             )   
-        )
+        
         nil
     )
 )
@@ -560,11 +560,10 @@ plan, else nil if not solved."
             (let ((new-link (make-link :from from :precond precondition :to to)))
                 (push new-link (plan-links plan))
                 (if (not (are-same-operators to (plan-goal plan)))
-		    (progn
-		      
-		      (pushnew (cons from to) (plan-orderings plan))
-		    )
-		  )
+                    (if (not (are-same-operators from (plan-start plan)))
+                        (pushnew (cons from to) (plan-orderings plan))
+                    )
+                )
                 (let ((threats-found (threats plan from new-link)))
                     (resolve-threats plan threats-found current-depth max-depth)
                 )
@@ -657,6 +656,23 @@ always check for any operators which threaten MAYBE-THREATENED-LINK."
     plans
 )
 
+(defun get-similar-threat-in-new-plan (threat new-plan)
+    (let (new-threat-op new-threat-to new-threat-from (new-threat-pre (link-precond (cdr threat))))
+        (dolist (operator (plan-operators new-plan))
+            (if (equalp (operator-name operator) (operator-name (car threat)))
+                (setf new-threat-op operator)
+            )
+            (if (equalp (operator-name operator) (operator-name (link-from (cdr threat))))
+                (setf new-threat-from operator)
+            )
+            (if (equalp (operator-name operator) (operator-name (link-to (cdr threat))))
+                (setf new-threat-to operator)
+            )
+        )
+        (cons new-threat-op (make-link :from new-threat-from :precond new-threat-pre :to new-threat-to))
+    )
+)
+
 (defun all-promotion-demotion-plans (plan threats-found)
   "Returns plans for each combination of promotions and demotions
 of the given threats, except  for the inconsistent plans.  These plans
@@ -695,13 +711,13 @@ are copies of the original plan."
     ;; (format t "are plans adding2? :~a~%" consistent-plans)
     (dolist (combination combinations)
         (format t "Combination for threat/s:~% ~a~%" combination)
-        (let ((updated-plan plan))
+        (let ((updated-plan (copy-plan plan)))
             (mapc #'(lambda (threat is-promote) 
                 (format t "~%Inside combination lambda. ~%Threat: ~a ~% isPromote:~a~%" threat is-promote)
                 
                 (if is-promote
-                    (setf updated-plan (generate-promoted-demoted-plan #'promote threat updated-plan))
-                    (setf updated-plan (generate-promoted-demoted-plan #'demote threat updated-plan))
+                    (setf updated-plan (generate-promoted-demoted-plan #'promote (get-similar-threat-in-new-plan threat updated-plan) updated-plan))
+                    (setf updated-plan (generate-promoted-demoted-plan #'demote (get-similar-threat-in-new-plan threat updated-plan) updated-plan))
                 )
             ) threats-found combination)
             (setf consistent-plans (check-and-add-plan consistent-plans updated-plan))
