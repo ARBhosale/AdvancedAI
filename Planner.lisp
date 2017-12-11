@@ -426,7 +426,7 @@ on those subgoals.  Returns a solved plan, else nil if not solved."
                     (progn
                         ;; nil
                         (format t "~% No sub goal ~%")
-                        (return-from select-subgoal nil)
+                        (return-from select-subgoal plan)
                     )
                 )
                 (incf current-depth)
