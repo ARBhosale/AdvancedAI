@@ -403,39 +403,22 @@ on those subgoals.  Returns a solved plan, else nil if not solved."
     ;;; algorithm says "pick a plan step...", rather than "CHOOSE a
     ;;; plan step....".  This makes the algorithm much faster.
 
-    ;; checking if maximum depth reached
-    (format t "~%Selecting sub-goal for plan:~a~%" plan)
-    (if (> current-depth max-depth)
-        (progn
-            (if (not (inconsistent-p plan))
-                (progn
-                    (format t "~% Depth reached. Returning nil although we had a consistent plan: ~a~%" plan)
-                    (return-from select-subgoal nil)
-                )
-                (progn
-                    (format t "~% Depth reached. Returning nil ")
-                    (return-from select-subgoal nil)
-                )
-            )
-        )
-        (progn
-            (let ((sub-goal (pick-precond plan)))
-                ;; checking if sub-goal exists
-                (format t "~%Sub goal picked:~a~%" sub-goal)
-                (if (not sub-goal)
-                    (progn
-                        ;; nil
-                        (format t "~% No sub goal ~%")
-                        (return-from select-subgoal nil)
-                    )
-                )
-                (incf current-depth)
-                (choose-operator sub-goal plan current-depth max-depth)
-            )
-        )
+  ;; checking if maximum depth reached
 
+  (if (> current-depth max-depth)
+      (return-from select-subgoal nil)
     )
-    
+  (let ((oppc (pick-precond plan)))
+    (if oppc
+	(progn
+	  (incf current-depth)
+	  (return-from select-subgoal (choose-operator oppc plan current-depth max-depth))
+	  )
+      (return-from select-subgoal nil)
+      )
+    )
+  nil
+  
     
 )
 
@@ -482,7 +465,7 @@ on them.  Returns a solved plan, else nil if not solved."
                 (dolist (operator operators-with-this-effect)
                     (let (temp-for-plan temp-operator)
                         (setf temp-operator (copy-operator operator))
-                        (setf temp-for-plan (add-operator temp-operator plan))
+                        (setf temp-for-plan (add-operator temp-operator (copy-plan plan)))
                         (setf temp-for-plan (hook-up-operator temp-operator (car op-precond-pair) effect-to-find temp-for-plan current-depth max-depth t))
                         (if temp-for-plan
                             (progn
@@ -514,7 +497,7 @@ after start and before goal.  Returns the modified copy of the plan."
   ;;; Don't use PUSHNEW everywhere instead of PUSH, just where it
   ;;; makes specific sense.
   (format t "~%Adding new operator ~a" (operator-uniq operator))
-  (let ((new-plan (copy-plan plan)))
+  (let ((new-plan plan))
     (push operator (plan-operators new-plan))
     (let ((start (plan-start new-plan)) (goal (plan-goal new-plan)))
       (format t "~%Now Pushing ~a" (cons start (operator-name operator)))
@@ -523,7 +506,7 @@ after start and before goal.  Returns the modified copy of the plan."
         (pushnew (cons start operator) (plan-orderings new-plan))
         (pushnew (cons operator goal) (plan-orderings new-plan))
     )
-    new-plan
+    (return-from add-operator new-plan)
   )
 )
 
@@ -552,42 +535,41 @@ plan, else nil if not solved."
 ;;   )
 
   (format t "~%From: ~a" (operator-uniq from))
-            
   
-    (if new-operator-was-added
-        (progn
-            (format t "~%Hooking up a new operator:~a~%" from)
-            (let ((new-link (make-link :from from :precond precondition :to to)))
-                (push new-link (plan-links plan))
-                (if (not (are-same-operators to (plan-goal plan)))
-		    (progn
-		      
-		      (pushnew (cons from to) (plan-orderings plan))
-		    )
-		  )
-                (let ((threats-found (threats plan from new-link)))
-                    (resolve-threats plan threats-found current-depth max-depth)
-                )
-            )    
-        )
-        (progn
-            (format t "~%Hooking up an exisitng plan operator:~a~%" from)
-            (let ((new-link (make-link :from from :precond precondition :to to)))
-                (push new-link (plan-links plan))
-                (if (not (are-same-operators to (plan-goal plan)))
-                    (if (not (are-same-operators from (plan-start plan)))
-                        (pushnew (cons from to) (plan-orderings plan))
-                    )
-                )
-                
-                (let ((threats-found (threats plan nil new-link)))
-                    (resolve-threats plan threats-found current-depth max-depth)
-            )
-        )   
+  
+  (if new-operator-was-added
+      (progn
+	(format t "~%Hooking up a new operator:~a~%" from)
+	(let ((new-link (make-link :from from :precond precondition :to to)))
+	  (push new-link (plan-links plan))
+	  (if (not (are-same-operators to (plan-goal plan)))
+	      (progn
+		(pushnew (cons from to) (plan-orderings plan))
+		)
+	    )
+	  (let ((threats-found (threats plan from new-link)))
+	    (return-from hook-up-operator (resolve-threats plan threats-found current-depth max-depth))
+	    )
+	  )    
+	)
+    (progn
+      (format t "~%Hooking up an exisitng plan operator:~a~%" from)
+      (let ((new-link (make-link :from from :precond precondition :to to)))
+	(push new-link (plan-links plan))
+	(if (not (are-same-operators to (plan-goal plan)))
+	    (if (not (are-same-operators from (plan-start plan)))
+		(pushnew (cons from to) (plan-orderings plan))
+	      )
+	  )
+	
+	(let ((threats-found (threats plan nil new-link)))
+	  (return-from hook-up-operator (resolve-threats plan threats-found current-depth max-depth))
+	  )
+	)   
+      )
     )
-    )
-  ;;
-)
+  nil
+  )
 
 (defun threats (plan maybe-threatening-operator maybe-threatened-link)
   "After hooking up an operator, we have two places that we need to check for threats.
@@ -623,7 +605,7 @@ always check for any operators which threaten MAYBE-THREATENED-LINK."
             )
         )
         (format t "~%Threats in plan:~a~%" (list-length threats-found))
-        threats-found
+        (return-from threats threats-found)
     )
 )
 
@@ -639,7 +621,7 @@ always check for any operators which threaten MAYBE-THREATENED-LINK."
 (defun generate-promoted-demoted-plan (promote-demote-function threat original-plan)
     (let (modified-plan)
         (setf modified-plan (funcall promote-demote-function (car threat) (cdr threat) original-plan))
-        modified-plan
+        (return-from generate-promoted-demoted-plan modified-plan)
     )
 )
 
@@ -654,7 +636,7 @@ always check for any operators which threaten MAYBE-THREATENED-LINK."
         (format t "~%Plan is not consistent~%")
         
     )
-    plans
+    (return-from check-and-add-plan plans)
 )
 
 (defun all-promotion-demotion-plans (plan threats-found)
@@ -698,7 +680,7 @@ are copies of the original plan."
         (let ((updated-plan plan))
             (mapc #'(lambda (threat is-promote) 
                 (format t "~%Inside combination lambda. ~%Threat: ~a ~% isPromote:~a~%" threat is-promote)
-                
+                (setf updated-plan plan)
                 (if is-promote
                     (setf updated-plan (generate-promoted-demoted-plan #'promote threat updated-plan))
                     (setf updated-plan (generate-promoted-demoted-plan #'demote threat updated-plan))
@@ -707,7 +689,7 @@ are copies of the original plan."
             (setf consistent-plans (check-and-add-plan consistent-plans updated-plan))
         )
     )
-    consistent-plans  
+    (return-from all-promotion-demotion-plans consistent-plans)  
     )
   
 )
@@ -723,7 +705,7 @@ are copies of the original plan."
     (pushnew (cons operator from-operator-in-link) (plan-orderings plan))
     (pushnew (cons operator to-operator-in-link) (plan-orderings plan))
     (format t "~%Promoted plan:~%~a" plan)
-    plan
+    (return-from promote plan)
   )
 )
 
@@ -743,7 +725,7 @@ are copies of the original plan."
     (pushnew (cons from-operator-in-link operator) (plan-orderings plan))
     (pushnew (cons to-operator-in-link operator) (plan-orderings plan))
     (format t "~%Demoted plan:~%~a" plan)
-    plan
+    (return-from demote plan)
   )
 )
 
@@ -751,29 +733,29 @@ are copies of the original plan."
   "Tries all combinations of solutions to all the threats in the plan,
 then recursively calls SELECT-SUBGOAL on them until one returns a
 solved plan.  Returns the solved plan, else nil if no solved plan."
-(format t "~%Resolving threats:~a ~% for plan:~a~%" threats-found plan)
-    (let ((consistent-plans (all-promotion-demotion-plans plan threats-found)) (solved-plan nil))
-        (if (not consistent-plans)
-            (progn
-                (return-from resolve-threats nil)
-            )
-        )
-        (format t "~%Found some consistent prodem plans:~a~%" consistent-plans)
-        (dolist (consistent-plan consistent-plans)
-            (setf solved-plan (select-subgoal consistent-plan current-depth max-depth))
-            (if solved-plan
-                (progn
-                    (format t "~%Found a solved-plan for a consistent plan!!~%")
-                    (return-from resolve-threats solved-plan)
-                )
-                (progn
-                    (decf current-depth)
-                )
-            )
-        )
-        nil
+  (format t "~%Resolving threats:~a ~% for plan:~a~%" threats-found plan)
+  (let ((consistent-plans (all-promotion-demotion-plans plan threats-found)) (solved-plan nil))
+    (if (not consistent-plans)
+	(progn
+	  (return-from resolve-threats nil)
+	  )
+      )
+    (format t "~%Found some consistent prodem plans:~a~%" consistent-plans)
+    (dolist (consistent-plan consistent-plans)
+      (setf solved-plan (select-subgoal consistent-plan current-depth max-depth))
+      (if solved-plan
+	  (progn
+	    (format t "~%Found a solved-plan for a consistent plan!!~%")
+	    (return-from resolve-threats solved-plan)
+	    )
+	(progn
+	  (decf current-depth)
+	  )
+	)
+      )
     )
-)
+  nil
+  )
 
 
 
