@@ -361,11 +361,6 @@ effects which can achieve this precondition."
   ;; hint: there's short, efficient way to do this, and a long,
   ;; grotesquely inefficient way.  Don't do the inefficient way.
   (let ((operators '()))
-    ;; (dolist (link-in-plan (plan-links plan))
-    ;;     (if (equalp precondition (link-precond link-in-plan))
-    ;;         (push (link-to link-in-plan) operators)
-    ;;     )
-    ;; )
     (dolist (operator (plan-operators plan))
         (if (operator-effects operator)
             (dolist (operator-effect (operator-effects operator))
@@ -463,11 +458,6 @@ on them.  Returns a solved plan, else nil if not solved."
                         ;; (format t "~%Solved plan found using operator in plan. Plan:~a~%" temp-for-plan)
                         (return-from choose-operator temp-for-plan)
                     )
-                    ;; (progn
-                    ;;     (if (> current-depth max-depth)
-                    ;;         (return-from choose-operator nil)
-                    ;;     )
-                    ;; )
                 )
             )
         )
@@ -489,11 +479,6 @@ on them.  Returns a solved plan, else nil if not solved."
                                 ;; (format t "~%Solved plan found using all operators. Plan:~a~%" temp-for-plan)
                                 (return-from choose-operator temp-for-plan)
                             )
-                            ;; (progn
-                            ;;     (if (> current-depth max-depth)
-                            ;;         (return-from choose-operator nil)
-                            ;;     )
-                            ;; )
                         )
                     )
                 )
@@ -544,12 +529,6 @@ plan, else nil if not solved."
 
   ;;checking if TO is already ordered before FROM
 ;;   (format t "~%hook-up checking if TO is already ordered before FROM~%")
-;;   (if (reachable (plan-orderings plan) from to)
-;;     (progn
-;;         (format t "~%This operator is reachable. ~%Plan:~a~%From:~a ~%To:~a~%Moving on.~%" plan from to)
-;;         (return-from hook-up-operator nil)
-;;     )
-;;   )
 
 ;;   (format t "~%From: ~a" (operator-uniq from))
             
@@ -691,21 +670,6 @@ are copies of the original plan."
     
   )
 ;;   (format t "~%all-promotion-demotion-plans for threats found:~a~%" threats-found)
-;;   (if (equalp 1 (list-length threats-found))
-;;     (progn
-;;         (let ((threat (car threats-found)) (consistent-plans '()))
-;;             (let ((new-plan (copy-plan plan)))
-;;             ;; (format t "are plans adding? :~a~%" consistent-plans)
-;;             (generate-promoted-demoted-plans #'promote threat consistent-plans new-plan)
-            
-;;             (generate-promoted-demoted-plans #'demote threat consistent-plans new-plan)
-;;             ;; (consistent-plans)
-;;             (format t "one threat plans:~a~%" consistent-plans)
-;;             (return-from all-promotion-demotion-plans consistent-plans)
-;;         )
-;;     )
-;;     )
-;;   )
 ;; (format t "~%all-promotion-demotion-plans threats:~a~%" threats-found)
   (let* ((number-of-threats (list-length threats-found)) (combinations (binary-combinations number-of-threats)) (consistent-plans '()))
     ;; (format t "are plans adding2? :~a~%" consistent-plans)
@@ -747,10 +711,6 @@ are copies of the original plan."
   "Demotes an operator relative to a link.  Doesn't copy the plan."
 ;;   (format t "~%Demoting plan~%")
 ;;   (format t "On Operator:~a~%" (operator-uniq operator))
-;;   (let ((to-operator-in-link (link-to link)))
-;;     (pushnew (cons to-operator-in-link operator) (plan-orderings plan))
-;;     plan
-;;   )
 
   (let ((to-operator-in-link (link-to link))
 	(from-operator-in-link (link-from link)))
@@ -781,9 +741,6 @@ solved plan.  Returns the solved plan, else nil if no solved plan."
                 (progn
                     ;; (format t "~%Found a solved-plan for a consistent plan!!~%")
                     (return-from resolve-threats solved-plan)
-                )
-                (progn
-                    (decf current-depth)
                 )
             )
         )
@@ -1197,70 +1154,91 @@ doesn't matter really -- but NOT including a goal or start operator")
 
 ;;2 block world
 
+;; Search Depth: 1
+;; Search Depth: 2
+;; Search Depth: 3
+;; Search Depth: 4
+;; Search Depth: 5
+;; Search Depth: 6
+;; Search Depth: 7
+;; Search Depth: 8
 ;; Solution Discovered:
 
 ;; #< PLAN operators: 
-;; #S(OPERATOR :NAME B-A-TO-TABLE :UNIQ G20485 :PRECONDITIONS ((T B-ON-A) (T B-CLEAR))
+;; #S(OPERATOR :NAME B-A-TO-TABLE :UNIQ G72770 :PRECONDITIONS ((T B-ON-A) (T B-CLEAR))
 ;;    :EFFECTS ((T B-ON-TABLE) (NIL B-ON-A) (T A-CLEAR)))
-;; #S(OPERATOR :NAME A-TABLE-TO-B :UNIQ G20484
+;; #S(OPERATOR :NAME A-TABLE-TO-B :UNIQ G72769
 ;;    :PRECONDITIONS ((T A-ON-TABLE) (T B-CLEAR) (T A-CLEAR))
 ;;    :EFFECTS ((NIL A-ON-TABLE) (NIL B-CLEAR) (T A-ON-B)))
-;; #S(OPERATOR :NAME START :UNIQ G20431 :PRECONDITIONS NIL
+;; #S(OPERATOR :NAME START :UNIQ G72716 :PRECONDITIONS NIL
 ;;    :EFFECTS ((T A-ON-TABLE) (T B-ON-A) (T B-CLEAR)))
-;; #S(OPERATOR :NAME GOAL :UNIQ G20432 :PRECONDITIONS ((T A-ON-B) (T B-ON-TABLE) (T A-CLEAR))
+;; #S(OPERATOR :NAME GOAL :UNIQ G72717 :PRECONDITIONS ((T A-ON-B) (T B-ON-TABLE) (T A-CLEAR))
 ;;    :EFFECTS NIL) 
 ;; links: 
-;; #< (G20485)B-A-TO-TABLE -> (G20432)GOAL : (T A-CLEAR) >
-;; #< (G20485)B-A-TO-TABLE -> (G20432)GOAL : (T B-ON-TABLE) >
-;; #< (G20431)START -> (G20485)B-A-TO-TABLE : (T B-CLEAR) >
-;; #< (G20431)START -> (G20485)B-A-TO-TABLE : (T B-ON-A) >
-;; #< (G20485)B-A-TO-TABLE -> (G20484)A-TABLE-TO-B : (T A-CLEAR) >
-;; #< (G20431)START -> (G20484)A-TABLE-TO-B : (T B-CLEAR) >
-;; #< (G20431)START -> (G20484)A-TABLE-TO-B : (T A-ON-TABLE) >
-;; #< (G20484)A-TABLE-TO-B -> (G20432)GOAL : (T A-ON-B) > 
+;; #< (G72770)B-A-TO-TABLE -> (G72717)GOAL : (T A-CLEAR) >
+;; #< (G72770)B-A-TO-TABLE -> (G72717)GOAL : (T B-ON-TABLE) >
+;; #< (G72716)START -> (G72770)B-A-TO-TABLE : (T B-CLEAR) >
+;; #< (G72716)START -> (G72770)B-A-TO-TABLE : (T B-ON-A) >
+;; #< (G72770)B-A-TO-TABLE -> (G72769)A-TABLE-TO-B : (T A-CLEAR) >
+;; #< (G72716)START -> (G72769)A-TABLE-TO-B : (T B-CLEAR) >
+;; #< (G72716)START -> (G72769)A-TABLE-TO-B : (T A-ON-TABLE) >
+;; #< (G72769)A-TABLE-TO-B -> (G72717)GOAL : (T A-ON-B) > 
 ;; orderings: 
-;; #[ (G20485)B-A-TO-TABLE -> (G20484)A-TABLE-TO-B ]
-;; #[ (G20431)START -> (G20484)A-TABLE-TO-B ]
-;; #[ (G20485)B-A-TO-TABLE -> (G20484)A-TABLE-TO-B ]
-;; #[ (G20485)B-A-TO-TABLE -> (G20432)GOAL ]
-;; #[ (G20431)START -> (G20485)B-A-TO-TABLE ]
-;; #[ (G20484)A-TABLE-TO-B -> (G20432)GOAL ]
-;; #[ (G20431)START -> (G20484)A-TABLE-TO-B ]
-;; #[ (G20431)START -> (G20432)GOAL ]
+;; #[ (G72770)B-A-TO-TABLE -> (G72769)A-TABLE-TO-B ]
+;; #[ (G72716)START -> (G72769)A-TABLE-TO-B ]
+;; #[ (G72770)B-A-TO-TABLE -> (G72769)A-TABLE-TO-B ]
+;; #[ (G72770)B-A-TO-TABLE -> (G72717)GOAL ]
+;; #[ (G72716)START -> (G72770)B-A-TO-TABLE ]
+;; #[ (G72769)A-TABLE-TO-B -> (G72717)GOAL ]
+;; #[ (G72716)START -> (G72769)A-TABLE-TO-B ]
+;; #[ (G72716)START -> (G72717)GOAL ]
+;; >
+;;
 
 
 
 ;;3 block world
+;; Search Depth: 1
+;; Search Depth: 2
+;; Search Depth: 3
+;; Search Depth: 4
+;; Search Depth: 5
+;; Search Depth: 6
+;; Search Depth: 7
+;; Search Depth: 8
+;; Search Depth: 9
+;; Search Depth: 10
 ;; Solution Discovered:
 
 ;; #< PLAN operators: 
-;; #S(OPERATOR :NAME B-TABLE-TO-C :UNIQ G20286
+;; #S(OPERATOR :NAME B-TABLE-TO-C :UNIQ G21368
 ;;    :PRECONDITIONS ((T B-ON-TABLE) (T C-CLEAR) (T B-CLEAR))
 ;;    :EFFECTS ((NIL B-ON-TABLE) (NIL C-CLEAR) (T B-ON-C)))
-;; #S(OPERATOR :NAME A-TABLE-TO-B :UNIQ G20268
+;; #S(OPERATOR :NAME A-TABLE-TO-B :UNIQ G21350
 ;;    :PRECONDITIONS ((T A-ON-TABLE) (T B-CLEAR) (T A-CLEAR))
 ;;    :EFFECTS ((NIL A-ON-TABLE) (NIL B-CLEAR) (T A-ON-B)))
-;; #S(OPERATOR :NAME START :UNIQ G19545 :PRECONDITIONS NIL
+;; #S(OPERATOR :NAME START :UNIQ G20661 :PRECONDITIONS NIL
 ;;    :EFFECTS
 ;;    ((T A-ON-TABLE) (T A-CLEAR) (T B-ON-TABLE) (T B-CLEAR) (T C-ON-TABLE) (T C-CLEAR)))
-;; #S(OPERATOR :NAME GOAL :UNIQ G19546
+;; #S(OPERATOR :NAME GOAL :UNIQ G20662
 ;;    :PRECONDITIONS ((T A-ON-B) (T B-ON-C) (T C-ON-TABLE) (T A-CLEAR)) :EFFECTS NIL) 
 ;; links: 
-;; #< (G19545)START -> (G19546)GOAL : (T A-CLEAR) >
-;; #< (G19545)START -> (G19546)GOAL : (T C-ON-TABLE) >
-;; #< (G19545)START -> (G20286)B-TABLE-TO-C : (T B-CLEAR) >
-;; #< (G19545)START -> (G20286)B-TABLE-TO-C : (T C-CLEAR) >
-;; #< (G19545)START -> (G20286)B-TABLE-TO-C : (T B-ON-TABLE) >
-;; #< (G20286)B-TABLE-TO-C -> (G19546)GOAL : (T B-ON-C) >
-;; #< (G19545)START -> (G20268)A-TABLE-TO-B : (T A-CLEAR) >
-;; #< (G19545)START -> (G20268)A-TABLE-TO-B : (T B-CLEAR) >
-;; #< (G19545)START -> (G20268)A-TABLE-TO-B : (T A-ON-TABLE) >
-;; #< (G20268)A-TABLE-TO-B -> (G19546)GOAL : (T A-ON-B) > 
+;; #< (G20661)START -> (G20662)GOAL : (T A-CLEAR) >
+;; #< (G20661)START -> (G20662)GOAL : (T C-ON-TABLE) >
+;; #< (G20661)START -> (G21368)B-TABLE-TO-C : (T B-CLEAR) >
+;; #< (G20661)START -> (G21368)B-TABLE-TO-C : (T C-CLEAR) >
+;; #< (G20661)START -> (G21368)B-TABLE-TO-C : (T B-ON-TABLE) >
+;; #< (G21368)B-TABLE-TO-C -> (G20662)GOAL : (T B-ON-C) >
+;; #< (G20661)START -> (G21350)A-TABLE-TO-B : (T A-CLEAR) >
+;; #< (G20661)START -> (G21350)A-TABLE-TO-B : (T B-CLEAR) >
+;; #< (G20661)START -> (G21350)A-TABLE-TO-B : (T A-ON-TABLE) >
+;; #< (G21350)A-TABLE-TO-B -> (G20662)GOAL : (T A-ON-B) > 
 ;; orderings: 
-;; #[ (G20286)B-TABLE-TO-C -> (G20268)A-TABLE-TO-B ]
-;; #[ (G19545)START -> (G20268)A-TABLE-TO-B ]
-;; #[ (G20286)B-TABLE-TO-C -> (G19546)GOAL ]
-;; #[ (G19545)START -> (G20286)B-TABLE-TO-C ]
-;; #[ (G20268)A-TABLE-TO-B -> (G19546)GOAL ]
-;; #[ (G19545)START -> (G20268)A-TABLE-TO-B ]
-;; #[ (G19545)START -> (G19546)GOAL ]
+;; #[ (G21368)B-TABLE-TO-C -> (G21350)A-TABLE-TO-B ]
+;; #[ (G20661)START -> (G21350)A-TABLE-TO-B ]
+;; #[ (G21368)B-TABLE-TO-C -> (G20662)GOAL ]
+;; #[ (G20661)START -> (G21368)B-TABLE-TO-C ]
+;; #[ (G21350)A-TABLE-TO-B -> (G20662)GOAL ]
+;; #[ (G20661)START -> (G21350)A-TABLE-TO-B ]
+;; #[ (G20661)START -> (G20662)GOAL ]
+;; >
