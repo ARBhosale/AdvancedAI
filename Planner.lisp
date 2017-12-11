@@ -482,13 +482,13 @@ on them.  Returns a solved plan, else nil if not solved."
     (let ((effect-to-find (cdr op-precond-pair)) operators-with-this-effect)
         (format t "~% Finding operators with effect:~a~%" effect-to-find)
 
-        ;checking for an operator already in plan
+	;;checking for an operator already in plan
         
         (setf operators-with-this-effect (all-effects effect-to-find plan))
         (dolist (operator operators-with-this-effect)
             (let (temp-for-plan)
                 (format t "~%Checking for an operator already in plan~%")
-                (setf temp-for-plan (hook-up-operator operator (car op-precond-pair) effect-to-find (copy-plan plan) current-depth max-depth nil))
+                (setf temp-for-plan (hook-up-operator operator (car op-precond-pair) effect-to-find plan current-depth max-depth nil))
                 (if temp-for-plan
                     (progn
                         (format t "~%Solved plan found using operator in plan. Plan:~a~%" temp-for-plan)
@@ -511,7 +511,7 @@ on them.  Returns a solved plan, else nil if not solved."
             (dolist (operator operators-with-this-effect)
                 (let (temp-for-plan temp-operator)
                     (setf temp-operator (copy-operator operator))
-                    (setf temp-for-plan (add-operator temp-operator plan))
+                    (setf temp-for-plan (add-operator temp-operator (copy-plan plan)))
                     (setf temp-for-plan (hook-up-operator temp-operator (car op-precond-pair) effect-to-find temp-for-plan current-depth max-depth t))
                     (if temp-for-plan
                         (progn
@@ -709,7 +709,7 @@ are copies of the original plan."
     ;; (format t "are plans adding2? :~a~%" consistent-plans)
     (dolist (combination combinations)
         (format t "Combination for threat/s:~% ~a~%" combination)
-        (let ((updated-plan (copy-plan plan)))
+        (let ((updated-plan plan))
             (mapc #'(lambda (threat is-promote) 
                 (format t "~%Inside combination lambda. ~%Threat: ~a ~% isPromote:~a~%" threat is-promote)
                 
