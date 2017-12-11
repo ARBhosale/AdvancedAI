@@ -338,20 +338,20 @@ or before the link, and it's got an effect which counters the link's effect."
 (defun pick-precond (plan)
   "Return ONE (operator . precondition) pair in the plan that has not been met yet.
 If there is no such pair, return nil"
-(format t "~%Picking an operator with an open pre-condition in plan:~a~%" plan)
+;; (format t "~%Picking an operator with an open pre-condition in plan:~a~%" plan)
     (dolist (operator-in-plan (plan-operators plan))
         (dolist (precondition (operator-preconditions operator-in-plan))
             (if precondition
                 (if (not (link-exists-for-precondition-p precondition operator-in-plan plan))
                     (progn
-                        (format t "~%Found operator:~a ~% Open precondition:~a~%" operator-in-plan precondition)
+                        ;; (format t "~%Found operator:~a ~% Open precondition:~a~%" operator-in-plan precondition)
                         (return-from pick-precond (cons operator-in-plan precondition))
                     )
                 )
             )
         )
     )
-    (format t "Could not find any operator with open precondition.")
+    ;; (format t "Could not find any operator with open precondition.")
     nil
 )
 
@@ -404,16 +404,16 @@ on those subgoals.  Returns a solved plan, else nil if not solved."
     ;;; plan step....".  This makes the algorithm much faster.
 
     ;; checking if maximum depth reached
-    (format t "~%Selecting sub-goal for plan:~a~%" plan)
+    ;; (format t "~%Selecting sub-goal for plan:~a~%" plan)
     (if (> current-depth max-depth)
         (progn
             (if (not (inconsistent-p plan))
                 (progn
-                    (format t "~% Depth reached. Returning nil although we had a consistent plan: ~a~%" plan)
+                    ;; (format t "~% Depth reached. Returning nil although we had a consistent plan: ~a~%" plan)
                     (return-from select-subgoal nil)
                 )
                 (progn
-                    (format t "~% Depth reached. Returning nil ")
+                    ;; (format t "~% Depth reached. Returning nil ")
                     (return-from select-subgoal nil)
                 )
             )
@@ -421,11 +421,11 @@ on those subgoals.  Returns a solved plan, else nil if not solved."
         (progn
             (let ((sub-goal (pick-precond plan)))
                 ;; checking if sub-goal exists
-                (format t "~%Sub goal picked:~a~%" sub-goal)
+                ;; (format t "~%Sub goal picked:~a~%" sub-goal)
                 (if (not sub-goal)
                     (progn
                         ;; nil
-                        (format t "~% No sub goal ~%")
+                        ;; (format t "~% No sub goal ~%")
                         (return-from select-subgoal plan)
                     )
                 )
@@ -446,21 +446,21 @@ hook-up-operator for all possible operators in the plan.  If that
 doesn't work, recursively call add operators and call hook-up-operators
 on them.  Returns a solved plan, else nil if not solved."
 
-  (format t "~% Max Depth :~a~%" max-depth)
+;;   (format t "~% Max Depth :~a~%" max-depth)
 
     (let ((effect-to-find (cdr op-precond-pair)) operators-with-this-effect)
-        (format t "~% Finding operators with effect:~a~%" effect-to-find)
+        ;; (format t "~% Finding operators with effect:~a~%" effect-to-find)
 
 	;;checking for an operator already in plan
         
         (setf operators-with-this-effect (all-effects effect-to-find plan))
         (dolist (operator operators-with-this-effect)
             (let (temp-for-plan)
-                (format t "~%Checking for an operator already in plan~%")
+                ;; (format t "~%Checking for an operator already in plan~%")
                 (setf temp-for-plan (hook-up-operator operator (car op-precond-pair) effect-to-find plan current-depth max-depth nil))
                 (if temp-for-plan
                     (progn
-                        (format t "~%Solved plan found using operator in plan. Plan:~a~%" temp-for-plan)
+                        ;; (format t "~%Solved plan found using operator in plan. Plan:~a~%" temp-for-plan)
                         (return-from choose-operator temp-for-plan)
                     )
                     ;; (progn
@@ -475,10 +475,10 @@ on them.  Returns a solved plan, else nil if not solved."
         ;if there is no solved plan found, checking for an operator from all operators
         
             (progn
-                (format t "~%Current depth:~a:~% Max-depth:~a~%" current-depth max-depth)
-                (format t "~%Checking for an operator from all operators~%")
+                ;; (format t "~%Current depth:~a:~% Max-depth:~a~%" current-depth max-depth)
+                ;; (format t "~%Checking for an operator from all operators~%")
                 (setf operators-with-this-effect (all-operators effect-to-find))
-                (format t "~%All operators having effect~a~%~%Operators:~a~%" effect-to-find operators-with-this-effect)
+                ;; (format t "~%All operators having effect~a~%~%Operators:~a~%" effect-to-find operators-with-this-effect)
                 (dolist (operator operators-with-this-effect)
                     (let (temp-for-plan temp-operator)
                         (setf temp-operator (copy-operator operator))
@@ -486,7 +486,7 @@ on them.  Returns a solved plan, else nil if not solved."
                         (setf temp-for-plan (hook-up-operator temp-operator (car op-precond-pair) effect-to-find temp-for-plan current-depth max-depth t))
                         (if temp-for-plan
                             (progn
-                                (format t "~%Solved plan found using all operators. Plan:~a~%" temp-for-plan)
+                                ;; (format t "~%Solved plan found using all operators. Plan:~a~%" temp-for-plan)
                                 (return-from choose-operator temp-for-plan)
                             )
                             ;; (progn
@@ -513,12 +513,12 @@ after start and before goal.  Returns the modified copy of the plan."
   ;;; also hint: use PUSHNEW to add stuff but not duplicates
   ;;; Don't use PUSHNEW everywhere instead of PUSH, just where it
   ;;; makes specific sense.
-  (format t "~%Adding new operator ~a" (operator-uniq operator))
+;;   (format t "~%Adding new operator ~a" (operator-uniq operator))
   (let ((new-plan (copy-plan plan)))
     (push operator (plan-operators new-plan))
     (let ((start (plan-start new-plan)) (goal (plan-goal new-plan)))
-      (format t "~%Now Pushing ~a" (cons start (operator-name operator)))
-      (format t "~%Now Pushing ~a" (cons (operator-name operator) goal))
+    ;;   (format t "~%Now Pushing ~a" (cons start (operator-name operator)))
+    ;;   (format t "~%Now Pushing ~a" (cons (operator-name operator) goal))
       
         (pushnew (cons start operator) (plan-orderings new-plan))
         (pushnew (cons operator goal) (plan-orderings new-plan))
@@ -551,12 +551,12 @@ plan, else nil if not solved."
 ;;     )
 ;;   )
 
-  (format t "~%From: ~a" (operator-uniq from))
+;;   (format t "~%From: ~a" (operator-uniq from))
             
   
     (if new-operator-was-added
         (progn
-            (format t "~%Hooking up a new operator:~a~%" from)
+            ;; (format t "~%Hooking up a new operator:~a~%" from)
             (let ((new-link (make-link :from from :precond precondition :to to)))
                 (push new-link (plan-links plan))
                 (if (not (are-same-operators to (plan-goal plan)))
@@ -570,7 +570,7 @@ plan, else nil if not solved."
             )    
         )
         (progn
-            (format t "~%Hooking up an exisitng plan operator:~a~%" from)
+            ;; (format t "~%Hooking up an exisitng plan operator:~a~%" from)
             (let ((new-link (make-link :from from :precond precondition :to to)))
                 (push new-link (plan-links plan))
                 (if (not (are-same-operators to (plan-goal plan)))
@@ -621,7 +621,7 @@ always check for any operators which threaten MAYBE-THREATENED-LINK."
                 )
             )
         )
-        (format t "~%Threats in plan:~a~%" (list-length threats-found))
+        ;; (format t "~%Threats in plan:~a~%" (list-length threats-found))
         threats-found
     )
 )
@@ -646,11 +646,11 @@ always check for any operators which threaten MAYBE-THREATENED-LINK."
     ;; (format t "are plans adding? :~a~%" plan)
     (if (not (inconsistent-p plan))
         (progn
-            (format t "~%Plan is consistent.~%")
+            ;; (format t "~%Plan is consistent.~%")
             (push plan plans)
             ;; (format t "~%Adding ~%Plan:~a to Plans:~a~%" plan plans)
         )
-        (format t "~%Plan is not consistent~%")
+        ;; (format t "~%Plan is not consistent~%")
         
     )
     plans
@@ -706,14 +706,14 @@ are copies of the original plan."
 ;;     )
 ;;     )
 ;;   )
-(format t "~%all-promotion-demotion-plans threats:~a~%" threats-found)
+;; (format t "~%all-promotion-demotion-plans threats:~a~%" threats-found)
   (let* ((number-of-threats (list-length threats-found)) (combinations (binary-combinations number-of-threats)) (consistent-plans '()))
     ;; (format t "are plans adding2? :~a~%" consistent-plans)
     (dolist (combination combinations)
-        (format t "Combination for threat/s:~% ~a~%" combination)
+        ;; (format t "Combination for threat/s:~% ~a~%" combination)
         (let ((updated-plan (copy-plan plan)))
             (mapc #'(lambda (threat is-promote) 
-                (format t "~%Inside combination lambda. ~%Threat: ~a ~% isPromote:~a~%" threat is-promote)
+                ;; (format t "~%Inside combination lambda. ~%Threat: ~a ~% isPromote:~a~%" threat is-promote)
                 
                 (if is-promote
                     (setf updated-plan (generate-promoted-demoted-plan #'promote (get-similar-threat-in-new-plan threat updated-plan) updated-plan))
@@ -730,23 +730,23 @@ are copies of the original plan."
 
 (defun promote (operator link plan)
   "Promotes an operator relative to a link.  Doesn't copy the plan."
-  (format t "~%Promoting plan:~%~a" plan)
-  (format t "On Operator:~a~%" (operator-uniq operator))
+;;   (format t "~%Promoting plan:~%~a" plan)
+;;   (format t "On Operator:~a~%" (operator-uniq operator))
   
   (let ((to-operator-in-link (link-to link))
 	(from-operator-in-link (link-from link)))
-    (format t "~%Now Pushing from promote :~a"  (cons operator from-operator-in-link))
+    ;; (format t "~%Now Pushing from promote :~a"  (cons operator from-operator-in-link))
     (pushnew (cons operator from-operator-in-link) (plan-orderings plan))
     (pushnew (cons operator to-operator-in-link) (plan-orderings plan))
-    (format t "~%Promoted plan:~%~a" plan)
+    ;; (format t "~%Promoted plan:~%~a" plan)
     plan
   )
 )
 
 (defun demote (operator link plan)
   "Demotes an operator relative to a link.  Doesn't copy the plan."
-  (format t "~%Demoting plan~%")
-  (format t "On Operator:~a~%" (operator-uniq operator))
+;;   (format t "~%Demoting plan~%")
+;;   (format t "On Operator:~a~%" (operator-uniq operator))
 ;;   (let ((to-operator-in-link (link-to link)))
 ;;     (pushnew (cons to-operator-in-link operator) (plan-orderings plan))
 ;;     plan
@@ -754,11 +754,11 @@ are copies of the original plan."
 
   (let ((to-operator-in-link (link-to link))
 	(from-operator-in-link (link-from link)))
-    (format t "~%Now Pushing from demote :~a" (cons from-operator-in-link operator))
-    (format t "~%Now Pushing from demote :~a" (cons operator to-operator-in-link))
+    ;; (format t "~%Now Pushing from demote :~a" (cons from-operator-in-link operator))
+    ;; (format t "~%Now Pushing from demote :~a" (cons operator to-operator-in-link))
     (pushnew (cons from-operator-in-link operator) (plan-orderings plan))
     (pushnew (cons to-operator-in-link operator) (plan-orderings plan))
-    (format t "~%Demoted plan:~%~a" plan)
+    ;; (format t "~%Demoted plan:~%~a" plan)
     plan
   )
 )
@@ -767,19 +767,19 @@ are copies of the original plan."
   "Tries all combinations of solutions to all the threats in the plan,
 then recursively calls SELECT-SUBGOAL on them until one returns a
 solved plan.  Returns the solved plan, else nil if no solved plan."
-(format t "~%Resolving threats:~a ~% for plan:~a~%" threats-found plan)
+;; (format t "~%Resolving threats:~a ~% for plan:~a~%" threats-found plan)
     (let ((consistent-plans (all-promotion-demotion-plans plan threats-found)) (solved-plan nil))
         (if (not consistent-plans)
             (progn
                 (return-from resolve-threats nil)
             )
         )
-        (format t "~%Found some consistent prodem plans:~a~%" consistent-plans)
+        ;; (format t "~%Found some consistent prodem plans:~a~%" consistent-plans)
         (dolist (consistent-plan consistent-plans)
             (setf solved-plan (select-subgoal consistent-plan current-depth max-depth))
             (if solved-plan
                 (progn
-                    (format t "~%Found a solved-plan for a consistent plan!!~%")
+                    ;; (format t "~%Found a solved-plan for a consistent plan!!~%")
                     (return-from resolve-threats solved-plan)
                 )
                 (progn
@@ -1191,3 +1191,76 @@ doesn't matter really -- but NOT including a goal or start operator")
 ;;;; Here it's also complaining about copy-operator and copy-plan being
 ;;;; redefined, because the structure definition had created them and
 ;;;; I'm doing better copy functions.  That's expected.
+
+
+;;Our solutions:
+
+;;2 block world
+
+;; Solution Discovered:
+
+;; #< PLAN operators: 
+;; #S(OPERATOR :NAME B-A-TO-TABLE :UNIQ G20485 :PRECONDITIONS ((T B-ON-A) (T B-CLEAR))
+;;    :EFFECTS ((T B-ON-TABLE) (NIL B-ON-A) (T A-CLEAR)))
+;; #S(OPERATOR :NAME A-TABLE-TO-B :UNIQ G20484
+;;    :PRECONDITIONS ((T A-ON-TABLE) (T B-CLEAR) (T A-CLEAR))
+;;    :EFFECTS ((NIL A-ON-TABLE) (NIL B-CLEAR) (T A-ON-B)))
+;; #S(OPERATOR :NAME START :UNIQ G20431 :PRECONDITIONS NIL
+;;    :EFFECTS ((T A-ON-TABLE) (T B-ON-A) (T B-CLEAR)))
+;; #S(OPERATOR :NAME GOAL :UNIQ G20432 :PRECONDITIONS ((T A-ON-B) (T B-ON-TABLE) (T A-CLEAR))
+;;    :EFFECTS NIL) 
+;; links: 
+;; #< (G20485)B-A-TO-TABLE -> (G20432)GOAL : (T A-CLEAR) >
+;; #< (G20485)B-A-TO-TABLE -> (G20432)GOAL : (T B-ON-TABLE) >
+;; #< (G20431)START -> (G20485)B-A-TO-TABLE : (T B-CLEAR) >
+;; #< (G20431)START -> (G20485)B-A-TO-TABLE : (T B-ON-A) >
+;; #< (G20485)B-A-TO-TABLE -> (G20484)A-TABLE-TO-B : (T A-CLEAR) >
+;; #< (G20431)START -> (G20484)A-TABLE-TO-B : (T B-CLEAR) >
+;; #< (G20431)START -> (G20484)A-TABLE-TO-B : (T A-ON-TABLE) >
+;; #< (G20484)A-TABLE-TO-B -> (G20432)GOAL : (T A-ON-B) > 
+;; orderings: 
+;; #[ (G20485)B-A-TO-TABLE -> (G20484)A-TABLE-TO-B ]
+;; #[ (G20431)START -> (G20484)A-TABLE-TO-B ]
+;; #[ (G20485)B-A-TO-TABLE -> (G20484)A-TABLE-TO-B ]
+;; #[ (G20485)B-A-TO-TABLE -> (G20432)GOAL ]
+;; #[ (G20431)START -> (G20485)B-A-TO-TABLE ]
+;; #[ (G20484)A-TABLE-TO-B -> (G20432)GOAL ]
+;; #[ (G20431)START -> (G20484)A-TABLE-TO-B ]
+;; #[ (G20431)START -> (G20432)GOAL ]
+
+
+
+;;3 block world
+;; Solution Discovered:
+
+;; #< PLAN operators: 
+;; #S(OPERATOR :NAME B-TABLE-TO-C :UNIQ G20286
+;;    :PRECONDITIONS ((T B-ON-TABLE) (T C-CLEAR) (T B-CLEAR))
+;;    :EFFECTS ((NIL B-ON-TABLE) (NIL C-CLEAR) (T B-ON-C)))
+;; #S(OPERATOR :NAME A-TABLE-TO-B :UNIQ G20268
+;;    :PRECONDITIONS ((T A-ON-TABLE) (T B-CLEAR) (T A-CLEAR))
+;;    :EFFECTS ((NIL A-ON-TABLE) (NIL B-CLEAR) (T A-ON-B)))
+;; #S(OPERATOR :NAME START :UNIQ G19545 :PRECONDITIONS NIL
+;;    :EFFECTS
+;;    ((T A-ON-TABLE) (T A-CLEAR) (T B-ON-TABLE) (T B-CLEAR) (T C-ON-TABLE) (T C-CLEAR)))
+;; #S(OPERATOR :NAME GOAL :UNIQ G19546
+;;    :PRECONDITIONS ((T A-ON-B) (T B-ON-C) (T C-ON-TABLE) (T A-CLEAR)) :EFFECTS NIL) 
+;; links: 
+;; #< (G19545)START -> (G19546)GOAL : (T A-CLEAR) >
+;; #< (G19545)START -> (G19546)GOAL : (T C-ON-TABLE) >
+;; #< (G19545)START -> (G20286)B-TABLE-TO-C : (T B-CLEAR) >
+;; #< (G19545)START -> (G20286)B-TABLE-TO-C : (T C-CLEAR) >
+;; #< (G19545)START -> (G20286)B-TABLE-TO-C : (T B-ON-TABLE) >
+;; #< (G20286)B-TABLE-TO-C -> (G19546)GOAL : (T B-ON-C) >
+;; #< (G19545)START -> (G20268)A-TABLE-TO-B : (T A-CLEAR) >
+;; #< (G19545)START -> (G20268)A-TABLE-TO-B : (T B-CLEAR) >
+;; #< (G19545)START -> (G20268)A-TABLE-TO-B : (T A-ON-TABLE) >
+;; #< (G20268)A-TABLE-TO-B -> (G19546)GOAL : (T A-ON-B) > 
+;; orderings: 
+;; #[ (G20286)B-TABLE-TO-C -> (G20268)A-TABLE-TO-B ]
+;; #[ (G19545)START -> (G20268)A-TABLE-TO-B ]
+;; #[ (G20286)B-TABLE-TO-C -> (G19546)GOAL ]
+;; #[ (G19545)START -> (G20286)B-TABLE-TO-C ]
+;; #[ (G20268)A-TABLE-TO-B -> (G19546)GOAL ]
+;; #[ (G19545)START -> (G20268)A-TABLE-TO-B ]
+;; #[ (G19545)START -> (G19546)GOAL ]
